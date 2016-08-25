@@ -86,7 +86,6 @@ int *yPres;
 int *yHum;
 int *yCO2;
 
-vc
 unsigned long startMillis;
 unsigned long switchTimeMillis;
 boolean heaterInHighPhase;
