@@ -11,7 +11,7 @@
 
    * download the firmware via the Arduino IDE.
 
- ## Equipment
+## Equipment
 
  	* Arduino Mega 2560
  	* TFT LCD Shield(9341)
