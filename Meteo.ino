@@ -1,12 +1,7 @@
 /* Meteo.ino
 * Обеспечивает:
-*   Отображение даты, времени и текущих показаний всех датчиков.
-*   Отображение графика влажности по 30 показаниям за день.
-*   Отображение графика температуры по 30 показаниям за день.
-*   Отображение графика атмосферного давления по 30 показаниям за день.
-*   Отображение графика влажности по 30 показаниям за день.
-*   Отображение графика CO2 .
-* Разработчик - Инженер- программист Завидонов Антон © 2016г.
+*   Отображение графика температуры по 30 показаниям.
+* Разработчик - Инженер- программист Завидонов Антон 2016г.
 */
 #include <Adafruit_GFX.h>    // Core graphics library
 #include "Andersmmg_TFTLCD.h" // Hardware-specific library
@@ -17,6 +12,9 @@
 
 #include <TimeLib.h>
 #include <DS1307RTC.h>
+
+#include <SoftwareSerial.h>
+#include <DFPlayer_Mini_Mp3.h>
 
 
 
@@ -64,19 +62,23 @@
 #define COLOR_BUTTON_SELECT  0xF75
 #define COLOR_BUTTON         0xF010
 #define COLOR_TEXT           0xFFFF
+#define COLOR_ITEM           0xFF00
 //--------------_ Обявления классов _--------------------------
 
 BME280 mySensor;
 Andersmmg_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+TSPoint p;
 
 //--------------_ Обявления переменых _--------------------------
 
 bool g = false;
 int Xo = 80, Yo =150; // координаты для тачпада
+double x, y;
 
 double kX = 320/(932.0 - Xo);
 double kY = 240/(883.0 - Yo);
+
 int delay_puls = 100;   // задержка между касанием
 
 int *xTemp;
@@ -85,6 +87,7 @@ int *gTemp;
 int *yPres;
 int *yHum;
 int *yCO2;
+
 
 unsigned long startMillis;
 unsigned long switchTimeMillis;
@@ -108,15 +111,28 @@ int heigh_graf = cordX0 + corddifX - 20, k = 3; // высота поля и ко
                              
 int hours, minutes, seconds;
 int days, months, years;
+double temp, pres, hum, CO2;
 const char *monthName[12] = { 
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 };
 
+//--------------_ Переменные для меню настроек _--------------------------------
+int gnum = 0;           // номер страницы меню
+int alarm_hours  = 6;
+int alarm_minuts = 30;
+int volume_alarm = 3;
+int melody_alarm = 2;
+  
+bool music = true;
+int melody_menu = 1;
+int interval_sensor = 1;
+
  
 void setup(void) 
 {
-    Serial.begin(9600);  
+   
+      
     tft.reset();
     tft.setTextSize(2);
     uint16_t identifier = tft.readID();
@@ -193,6 +209,14 @@ void setup(void)
 	//Calling .begin() causes the settings to be loaded
 	delay(10);  //Make sure sensor had enough time to turn on. BME280 requires 2ms to start up.
 	mySensor.begin();
+
+        Serial2.begin(9600);
+        Serial.begin(9600); 
+        mp3_set_serial (Serial2);
+        delay(100);	//set Serial for DFPlayer-mini mp3 module 
+	mp3_set_volume (60);
+        delay(100);
+      
   
 }
     
@@ -221,6 +245,9 @@ void loop(void)
         
         // чертим кнопки
          draw_button(1);
+         
+         mp3_play(1);
+         delay(100);
           
         
         // от разного цвета кнопок разное меню
@@ -228,9 +255,10 @@ void loop(void)
     }
     
     //-----------------------_ Сбор Данных _------------------------
-     yTemp[depenition]  = mySensor.readTempC()*k;
-     yPres[depenition] = (mySensor.readFloatPressure()/133.332)/8; // 750 мм.р.ст. = 99 991,5 Па
-     yHum[depenition]   = mySensor.readFloatHumidity()*0.5;
+    
+     temp  = mySensor.readTempC();
+     pres  = mySensor.readFloatPressure()/133.332; // 750 мм.р.ст. = 99 991,5 Па
+     hum   = mySensor.readFloatHumidity();
      tmElements_t tm;  
     
       if(heaterInHighPhase){
@@ -248,7 +276,7 @@ void loop(void)
         }
       }
   
-      yCO2[depenition] = (analogRead(MQ7_ANALOG_IN_PIN))/5;
+      CO2 = analogRead(MQ7_ANALOG_IN_PIN);
  
     
      if (RTC.read(tm)) 
@@ -259,10 +287,18 @@ void loop(void)
        days    = tm.Day;
        months  = tm.Month;
        years   = tmYearToCalendar(tm.Year);
-   
+       
+       if(minutes %5 ==0) // каждые 5 минут сохраняем показания
+       { 
+         yTemp[depenition]  = temp*k;
+         yPres[depenition] = pres/8; 
+         yHum[depenition]   = hum*0.5;
+         yCO2[depenition] = CO2/5;
+         depenition++;
+       }   
       
      }
-     depenition++;
+     
      
     if(depenition >= point_data+9)    // как только насобирали количество показаний датчика.
     {    
@@ -270,8 +306,8 @@ void loop(void)
     }
     
     //--------------------------------------------------------------
-     TSPoint p = ts.getPoint(); 
-     double x, y;
+     p = ts.getPoint(); 
+     
      if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
      {
          x = (p.x - Xo)*kX;
@@ -285,14 +321,24 @@ void loop(void)
                  clean_touch();
                  draw_button(1);
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX,  COLOR_LCD);
+                 tft.fillRect(290,200, 30,20, COLOR_LCD);
                  param_index = 0;
                  draw_idex_param(param_index);
+                 
+                 mp3_play(1);
+                 delay(100);
+                 
              
              }
              if((x > 55)&&(x < 90)) // если касание на кнопке температура
              {
                  clean_touch();
+                 
+                 mp3_stop();
+                 delay(100);
+                
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
+                 tft.fillRect(290,200, 30,20, COLOR_LCD);
                  param_index = 1;
                  draw_idex_param(param_index);
                  draw_button(2);
@@ -304,12 +350,18 @@ void loop(void)
                  
                  
                  
+                 
              }
              if((x > 99)&&(x < 135)) // если касание на кнопке давление
              {
              
                  clean_touch();
+                 
+                 mp3_stop();
+                 delay(100);
+                 
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX,  COLOR_LCD);
+                 tft.fillRect(290,200, 30,20, COLOR_LCD);
                  param_index = 2;
                  draw_idex_param(param_index);
                  draw_button(3);
@@ -324,7 +376,12 @@ void loop(void)
              {
              
                  clean_touch();
+                 
+                 mp3_stop();
+                 delay(100);
+                 
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
+                 tft.fillRect(290,200, 30,20, COLOR_LCD);
                  param_index = 3;
                  draw_idex_param(param_index);
                  draw_button(4);
@@ -339,7 +396,12 @@ void loop(void)
              {
              
                  clean_touch();
+                 
+                 mp3_stop();
+                 delay(100);
+                 
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
+                 tft.fillRect(290,200, 30,20, COLOR_LCD);
                  param_index = 4;
                   draw_idex_param(param_index);
                  draw_button(5);
@@ -349,28 +411,121 @@ void loop(void)
                  draw(gTemp, point_graf);
                   
              }
-             if((x > 235)&&(x < 270)) // если касание на кнопке часы
+             if((x > 235)&&(x < 270)) // если касание на кнопке меню
              {
              
                  clean_touch();
+                 
+                 mp3_stop();
+                 delay(100);
+                 
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
                  draw_button(6);
                  param_index = 6;
+                 draw_menu();
+                 while(1)
+                 {
+                   delay(delay_puls);
+                   p = ts.getPoint(); 
+     
+                   if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                   {
+                       x = (p.x - Xo)*kX;
+                       y = (p.y - Yo)*kY; 
+                   
+                   if(((y > 34)&&(y < 68))&&((x > 20)&&(x < 240))) // если ещё раз нажали кнопку меню
+                                                                      // открываем следующую страницу
+                   {
+                       clean_touch();
+                       
+                       tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
+                       draw_menu();
+                   }
+                   if(((y > 80)&&(y < 120))&&((x > 20)&&(x < 240)))  // первая кнопка
+                   {
+                     while(1)
+                     {
+                       delay(delay_puls);
+                       
+                       p = ts.getPoint(); 
+     
+                       if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                       {
+                       x = (p.x - Xo)*kX;
+                       y = (p.y - Yo)*kY;
+                       
+                       tft.drawRoundRect(cordX0 + 5, cordY0 + 1*(49)+20, corddifY - (cordX0), 45, 6, COLOR_BUTTON);
+                       tft.drawRoundRect(cordX0 + 6, cordY0 + 1*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_BUTTON);
+                       
+                       if ((x > 320)&&((y > 140)&&(y < 175))) break;
+                       }
+                     }
+                     
+                   }
+                   if(((y > 140)&&(y < 170))&&((x > 20)&&(x < 240)))  // вторая кнопка
+                   {
+                     while(1)
+                     {
+                       delay(delay_puls);
+                       p = ts.getPoint(); 
+     
+                       if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                       {
+                       x = (p.x - Xo)*kX;
+                       y = (p.y - Yo)*kY;
+                       
+                       tft.drawRoundRect(cordX0 + 5, cordY0 + 2*(49)+20, corddifY - (cordX0), 45, 6, COLOR_BUTTON);
+                       tft.drawRoundRect(cordX0 + 6, cordY0 + 2*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_BUTTON);
+                       
+                       if ((x > 320)&&((y > 140)&&(y < 175))) break;
+                       }
+                     }
+                   }
+                   if(((y > 208)&&(y < 240))&&((x > 235)&&(x < 270)))  // третья кнопка
+                   {
+                     while(1)
+                     {
+                       delay(delay_puls);
+                       p = ts.getPoint(); 
+     
+                       if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                       {
+                       x = (p.x - Xo)*kX;
+                       y = (p.y - Yo)*kY;
+                       
+                       tft.drawRoundRect(cordX0 + 5, cordY0 + 1*(49)+20, corddifY - (cordX0), 45, 6, COLOR_BUTTON);
+                       tft.drawRoundRect(cordX0 + 6, cordY0 + 1*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_BUTTON);
+                       
+                       if ((x > 320)&&((y > 140)&&(y < 175))){delay(delay_puls); break;}
+                       }
+                     }
+                   }
+                   if ((x > 320)&&((y > 140)&&(y < 175))) {break;} // выход
+                   } 
+                 
+                 }
              }
             
          }
          
      }  // конец отработки касаний, выход в общий цикл
      
-     
+     // для отладки касания расскоментировать
+     /*
+     if((x>1)&&(y>1))
+     {
+       Serial.print(x);
+       Serial.print(" - ");
+       Serial.println(y);
+     }                      // */
      delay(delay_puls); 
      count++;
-     if(count == 20)
-     {
-       clean_touch();
-       draw_idex_param(param_index);
-       count = 0;
+     if(count>10){
+     clean_touch();
+     draw_idex_param(param_index);
+     count = 0;
      }
+     
   
 }
 
@@ -431,6 +586,81 @@ void my_func(int * masX, int * masY, int count, int n, int* masR)
  
  
 }
+//-------------------_ Отрисовка меню настроек _-----------------
+void draw_menu(void)
+{
+  int items = 3;     // количество строк меню
+  int ofsetx = 5;
+  int ofsety = 20;
+  int setspace = 4;  // растояние между строками меню
+  int heigh = 45;
+  int ofsetext = 18;
+  
+  
+ if(gnum ==0)
+ { 
+   for(int i = 0; i < items; i++)
+   {
+    
+      tft.drawRoundRect(cordX0 + ofsetx, cordY0 + i*(heigh+setspace)+ofsety, corddifY - (cordX0), heigh, 6, COLOR_ITEM);
+      tft.drawRoundRect(cordX0 + ofsetx+1, cordY0 + i*(heigh + setspace)-1+ofsety, corddifY - (cordX0)-2, heigh, 6, COLOR_ITEM);
+    
+   }
+   tft.fillRect(290,200, 30,20, COLOR_LCD);
+   tft.setCursor(290, 200);
+   tft.print(gnum+1);
+   gnum++;
+   
+   tft.setCursor(cordX0 + ofsetext, cordY0 + 36);
+   tft.print("Alarm clock");
+   tft.setCursor(cordX0 + 200, cordY0 + 36);
+   tft.print(alarm_hours);
+   tft.print(" : ");
+   tft.print(alarm_minuts);
+   
+   tft.setCursor(cordX0 + ofsetext, cordY0 + 36 + 1*(heigh+ setspace));
+   tft.print("Volume alarm");
+   tft.setCursor(cordX0 + 230, cordY0 + 36+ 1*(heigh+ setspace));
+   tft.print(volume_alarm);
+   
+   tft.setCursor(cordX0 + ofsetext, cordY0 + 36 + 2*(heigh+ setspace));
+   tft.print("Melody alarm");
+   tft.setCursor(cordX0 + 230, cordY0 + 36+ 2*(heigh+ setspace));
+   tft.print(melody_alarm);
+ }
+ else
+ { 
+   for(int i = 0; i < items; i++)
+   {
+    
+      tft.drawRoundRect(cordX0 + ofsetx, cordY0 + i*(heigh+setspace)+ofsety, corddifY - (cordX0), heigh, 6, COLOR_ITEM);
+      tft.drawRoundRect(cordX0 + ofsetx+1, cordY0 + i*(heigh + setspace)-1+ofsety, corddifY - (cordX0)-2, heigh, 6, COLOR_ITEM);
+    
+   }
+   tft.fillRect(290,200, 30,20, COLOR_LCD);
+   tft.setCursor(290, 200);
+   tft.print(gnum+1);
+   gnum = 0;
+   
+   tft.setCursor(cordX0 + ofsetext, cordY0 + 36);
+   tft.print("On/Off music");
+   tft.setCursor(cordX0 + 230, cordY0 + 36);
+   if(music) tft.print("On");
+   else  tft.print("Off");
+   
+   tft.setCursor(cordX0 + ofsetext, cordY0 + 36 + 1*(heigh+ setspace));
+   tft.print("Melody menu");
+   tft.setCursor(cordX0 + 230, cordY0 + 36+ 1*(heigh+ setspace));
+   tft.print(melody_menu);
+   
+   tft.setCursor(cordX0 + ofsetext, cordY0 + 36 + 2*(heigh+ setspace));
+   tft.print("Interval sensor");
+   tft.setCursor(cordX0 + 230, cordY0 + 36+ 2*(heigh+ setspace));
+   tft.print(interval_sensor);
+ }
+ 
+}
+//----------------------------------------------------------------
 
 //------------------------_ Отрисовка осей _----------------------
 void drawFrameGrafh()
@@ -574,11 +804,12 @@ void draw_idex_param(int num)
     case 0: // главное меню
     {
        
-       if(seconds < 4)tft.fillRect(120, 65, 90, 40, COLOR_LCD);
+       if(seconds < 3)tft.fillRect(120, 65, 90, 40, COLOR_LCD);
        if((minutes == 0)&&(seconds < 4))tft.fillRect(60, 65, 90, 40, COLOR_LCD);
        if((hours == 0)&&(minutes == 0)&&(seconds < 4)) tft.fillRect(25, 85, 180, 30, COLOR_LCD);
+       if((seconds %10 ==0)||(seconds %10 < 2)){tft.fillRect(200, 65, 60, 40, COLOR_LCD);}
+       else{tft.fillRect(225, 65, 30, 40, COLOR_LCD);}
        
-       tft.fillRect(200, 65, 60, 40, COLOR_LCD);
        
        // время
        tft.setCursor(60, 65);
@@ -606,67 +837,69 @@ void draw_idex_param(int num)
        //показания датчиков
        if(main_count == 0)
        {
-         tft.fillRect(30, 120, 270, 60, COLOR_LCD);
+         tft.fillRect(60, 120, 80, 20, COLOR_LCD);
          
          tft.setCursor(30, 120);
          tft.print("T = ");
-         tft.print(mySensor.readTempC());
+         tft.print(temp);
          tft.println(" C;");
          
+         tft.fillRect(70, 150, 120, 20, COLOR_LCD);
          tft.setCursor(40, 150);
          tft.print("P = ");
-         tft.print(mySensor.readFloatPressure()/133.332);
+         tft.print(pres);
          tft.print(" mm.rt.st");
          
-         tft.setCursor(168, 120);
+         tft.fillRect(200, 120, 80, 20, COLOR_LCD);
+         tft.setCursor(170, 120);
          tft.print("H = ");
-         tft.print(mySensor.readFloatHumidity());
+         tft.print(hum);
          tft.print(" %");
        }
        main_count++;
-       if(main_count == 100) main_count = 0;
+       if(main_count == 10) main_count = 0;
        break;
     }
     case 1:
     {
-       tft.fillRect(95, 35, 140, 20, COLOR_LCD);
+       tft.fillRect(125, 35, 110, 20, COLOR_LCD);
        tft.drawRect(90, 30, 150, 25, COLOR_LINE_FRAME);
        tft.setCursor(95, 35);
        tft.print("T = ");
-       tft.print(mySensor.readTempC());
+       tft.print(temp);
        tft.println(" C");
        main_count = 0;
        break;
     }
     case 2:
     {
-       tft.fillRect(50, 35, 240, 20, COLOR_LCD);
+       tft.fillRect(75, 35, 210, 20, COLOR_LCD);
        tft.drawRect(45, 30, 250, 25, COLOR_LINE_FRAME);
        tft.setCursor(45, 35);
        tft.print("P = ");
-       tft.print(mySensor.readFloatPressure()/133.332);
+       tft.print(pres);
        tft.print(" mm.rt.st");
        main_count = 0;
        break;
     }
     case 3:
     {
-       tft.fillRect(95, 35, 140, 20, COLOR_LCD);
+       tft.fillRect(125, 35, 110, 20, COLOR_LCD);
        tft.drawRect(90, 30, 150, 25, COLOR_LINE_FRAME);
        tft.setCursor(95, 35);
        tft.print("H = ");
-       tft.print(mySensor.readFloatHumidity());
+       tft.print(hum);
        tft.print(" %");
        main_count = 0;
        break;
     }
     case 4:
     {
-       tft.fillRect(95, 35, 140, 20, COLOR_LCD);
+       tft.fillRect(135, 35, 110, 20, COLOR_LCD);
        tft.drawRect(90, 30, 150, 25, COLOR_LINE_FRAME);
        tft.setCursor(115, 35);
        tft.print("CO2 = ");
-       tft.print(analogRead(MQ7_ANALOG_IN_PIN)/10);
+       tft.print(CO2/10);
        tft.print(" %");
        main_count = 0;
        break;
