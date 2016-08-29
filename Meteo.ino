@@ -1,6 +1,11 @@
 /* Meteo.ino
 * Обеспечивает:
-*   Отображение графика температуры по 30 показаниям.
+*   Отображение графика температуры по 30 показаниям за необходимое время от одного часа.
+*   Отображение графика давления по 30 показаниям за необходимое время от одного часа.
+*   Отображение графика влажности по 30 показаниям за необходимое время от одного часа.
+*   Отображение графика CO2 по 30 показаниям за необходимое время от одного часа.
+*   Отображение текущей даты, времени, показаний датчиков давления, температуры, влажности.
+*   Реализован будильник и меню настроек
 * Разработчик - Инженер- программист Завидонов Антон 2016г.
 */
 #include <Adafruit_GFX.h>    // Core graphics library
@@ -63,6 +68,7 @@
 #define COLOR_BUTTON         0xF010
 #define COLOR_TEXT           0xFFFF
 #define COLOR_ITEM           0xFF00
+#define COLOR_ITEM_SELECT    0xF75
 //--------------_ Обявления классов _--------------------------
 
 BME280 mySensor;
@@ -125,6 +131,7 @@ int volume_alarm = 3;
 int melody_alarm = 2;
   
 bool music = true;
+bool play = false;
 int melody_menu = 1;
 int interval_sensor = 1;
 
@@ -246,8 +253,14 @@ void loop(void)
         // чертим кнопки
          draw_button(1);
          
-         mp3_play(1);
-         delay(100);
+         if(music){
+         if(!play)
+         {
+             mp3_play(melody_menu);
+             delay(100);
+             play = true;
+         }}
+         
           
         
         // от разного цвета кнопок разное меню
@@ -288,14 +301,33 @@ void loop(void)
        months  = tm.Month;
        years   = tmYearToCalendar(tm.Year);
        
-       if(minutes %5 ==0) // каждые 5 минут сохраняем показания
+       if(minutes %(5 * interval_sensor) ==0) // каждые 5 минут сохраняем показания
        { 
          yTemp[depenition]  = temp*k;
          yPres[depenition] = pres/8; 
          yHum[depenition]   = hum*0.5;
          yCO2[depenition] = CO2/5;
          depenition++;
-       }   
+       } 
+       if((hours == alarm_hours)&&(minutes == alarm_minuts)) // срабатывает будильник
+       {
+         
+        mp3_set_volume(volume_alarm*10);
+        delay(100); 
+        mp3_play(melody_alarm);
+        delay(100);
+        delay(10000); // сколько по времени будет играть будильник
+        mp3_stop();
+        delay(100);
+        if(music){
+        if(play)
+         {
+           mp3_set_volume(60);
+           delay(100);
+           mp3_play(melody_menu);
+           delay(100);
+         } }
+       } 
       
      }
      
@@ -325,8 +357,13 @@ void loop(void)
                  param_index = 0;
                  draw_idex_param(param_index);
                  
-                 mp3_play(1);
-                 delay(100);
+                 if(music){
+                 if(!play)
+                 {
+                   mp3_play(melody_menu);
+                   delay(100);
+                   play = true;
+                 }}
                  
              
              }
@@ -334,8 +371,12 @@ void loop(void)
              {
                  clean_touch();
                  
-                 mp3_stop();
-                 delay(100);
+                 if(play)
+                 { 
+                   mp3_stop();
+                   delay(100);
+                   play = false;
+                 }
                 
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
                  tft.fillRect(290,200, 30,20, COLOR_LCD);
@@ -357,8 +398,12 @@ void loop(void)
              
                  clean_touch();
                  
-                 mp3_stop();
-                 delay(100);
+                 if(play)
+                 { 
+                   mp3_stop();
+                   delay(100);
+                   play = false;
+                 }
                  
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX,  COLOR_LCD);
                  tft.fillRect(290,200, 30,20, COLOR_LCD);
@@ -377,8 +422,12 @@ void loop(void)
              
                  clean_touch();
                  
-                 mp3_stop();
-                 delay(100);
+                 if(play)
+                 { 
+                   mp3_stop();
+                   delay(100);
+                   play = false;
+                 }
                  
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
                  tft.fillRect(290,200, 30,20, COLOR_LCD);
@@ -397,8 +446,12 @@ void loop(void)
              
                  clean_touch();
                  
-                 mp3_stop();
-                 delay(100);
+                 if(play)
+                 { 
+                   mp3_stop();
+                   delay(100);
+                   play = false;
+                 }
                  
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
                  tft.fillRect(290,200, 30,20, COLOR_LCD);
@@ -416,13 +469,27 @@ void loop(void)
              
                  clean_touch();
                  
-                 mp3_stop();
-                 delay(100);
+                 if(play)
+                 { 
+                   mp3_stop();
+                   delay(100);
+                   play = false;
+                 }
                  
                  tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
                  draw_button(6);
                  param_index = 6;
-                 draw_menu();
+                 if(gnum == 0)
+                 {
+                   draw_menu(0);
+                   gnum++;
+                 }
+                 else
+                 {
+                   draw_menu(1);
+                   gnum--;
+                 }
+                 
                  while(1)
                  {
                    delay(delay_puls);
@@ -433,77 +500,415 @@ void loop(void)
                        x = (p.x - Xo)*kX;
                        y = (p.y - Yo)*kY; 
                    
-                   if(((y > 34)&&(y < 68))&&((x > 20)&&(x < 240))) // если ещё раз нажали кнопку меню
-                                                                      // открываем следующую страницу
-                   {
-                       clean_touch();
-                       
-                       tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
-                       draw_menu();
-                   }
-                   if(((y > 80)&&(y < 120))&&((x > 20)&&(x < 240)))  // первая кнопка
-                   {
-                     while(1)
-                     {
-                       delay(delay_puls);
-                       
-                       p = ts.getPoint(); 
-     
-                       if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
-                       {
-                       x = (p.x - Xo)*kX;
-                       y = (p.y - Yo)*kY;
-                       
-                       tft.drawRoundRect(cordX0 + 5, cordY0 + 1*(49)+20, corddifY - (cordX0), 45, 6, COLOR_BUTTON);
-                       tft.drawRoundRect(cordX0 + 6, cordY0 + 1*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_BUTTON);
-                       
-                       if ((x > 320)&&((y > 140)&&(y < 175))) break;
+                       if(((y > 208)&&(y < 240))&&((x > 235)&&(x < 270))) // если ещё раз нажали кнопку меню
+                       {                                              // открываем следующую страницу
+                           clean_touch();
+                           
+                           tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
+                           if(gnum == 0)
+                           {
+                             draw_menu(1);
+                             gnum++;
+                           }
+                           else
+                           {
+                             draw_menu(0);
+                             gnum--;
+                           }
+                           
                        }
-                     }
-                     
-                   }
-                   if(((y > 140)&&(y < 170))&&((x > 20)&&(x < 240)))  // вторая кнопка
-                   {
-                     while(1)
-                     {
-                       delay(delay_puls);
-                       p = ts.getPoint(); 
-     
-                       if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                       if(((y > 34)&&(y < 68))&&((x > 20)&&(x < 240)))  // первая кнопка часы
                        {
-                       x = (p.x - Xo)*kX;
-                       y = (p.y - Yo)*kY;
+                           
+                               delay(delay_puls);
                        
-                       tft.drawRoundRect(cordX0 + 5, cordY0 + 2*(49)+20, corddifY - (cordX0), 45, 6, COLOR_BUTTON);
-                       tft.drawRoundRect(cordX0 + 6, cordY0 + 2*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_BUTTON);
-                       
-                       if ((x > 320)&&((y > 140)&&(y < 175))) break;
-                       }
-                     }
-                   }
-                   if(((y > 208)&&(y < 240))&&((x > 235)&&(x < 270)))  // третья кнопка
-                   {
-                     while(1)
-                     {
-                       delay(delay_puls);
-                       p = ts.getPoint(); 
+                               clean_touch();
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 0*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM_SELECT);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 0*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM_SELECT);
+                               
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 1*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 1*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                               
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 2*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 2*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                               while(1)
+                               {
+                                   delay(delay_puls);
+                                   p = ts.getPoint(); 
      
-                       if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                                   if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                                   {
+                                       x = (p.x - Xo)*kX;
+                                       y = (p.y - Yo)*kY;
+                                       if ((x > 320)&&((y > 1)&&(y < 31)))   // прибавляем
+                                       {
+                                           
+                                           
+                                           clean_touch();
+                                           if(gnum == 0)
+                                           {
+                                               alarm_hours++;
+                                               if(alarm_hours > 24) alarm_hours = 0;
+                                               tft.fillRect(cordX0 + 200, cordY0 + 36, 25, 20, COLOR_LCD);
+                                               tft.setCursor(cordX0 + 200, cordY0 + 36);
+                                               tft.print(alarm_hours);
+                                           }
+                                           if(gnum == 1)
+                                           {
+                                               
+                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 38, 20, COLOR_LCD);
+                                               tft.setCursor(cordX0 + 230, cordY0 + 36);
+                                               if(music == true){ music = false; tft.print("OFF");}
+                                               else {music = true;tft.print("ON");}
+                                               
+                                           
+                                           }
+                                           
+                                          
+                                           
+                                       }
+                                       if ((x > 320)&&((y > 64)&&(y < 103))) // убавляем
+                                       {
+                                           
+                                           
+                                           clean_touch();
+                                           if(gnum == 0)
+                                           {
+                                               alarm_hours--;
+                                               if(alarm_hours < 0) alarm_hours = 23;
+                                               tft.fillRect(cordX0 + 200, cordY0 + 36, 25, 20, COLOR_LCD);
+                                               tft.setCursor(cordX0 + 200, cordY0 + 36);
+                                               tft.print(alarm_hours);
+                                           }
+                                           if(gnum == 1)
+                                           {
+                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 38, 20, COLOR_LCD);
+                                               tft.setCursor(cordX0 + 230, cordY0 + 36);
+                                               if(music == true){ music = false; tft.print("OFF");}
+                                               else {music = true;tft.print("ON");}              
+                                           }
+                                           
+                                          
+                                       
+                                       }
+                                       if ((x > 320)&&((y > 140)&&(y < 175))) 
+                                       {
+                                           delay(delay_puls);
+                                           clean_touch();
+                                           tft.drawRoundRect(cordX0 + 5, cordY0 + 0*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                                           tft.drawRoundRect(cordX0 + 6, cordY0 + 0*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                                           p = ts.getPoint(); 
+                                           if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                                           {
+                                             x = (p.x - Xo)*kX;
+                                             y = (p.y - Yo)*kY;
+                                           }
+                                           else {x = 0; y =0; }
+                                           break;
+                                       } // выход
+                                   } 
+                                   
+                               }
+                                                                
+                      }
+                      if(((y > 34)&&(y < 68))&&((x > 240)&&(x < 290)))  // первая кнопка минуты
                        {
-                       x = (p.x - Xo)*kX;
-                       y = (p.y - Yo)*kY;
+                           
+                               delay(delay_puls);
                        
-                       tft.drawRoundRect(cordX0 + 5, cordY0 + 1*(49)+20, corddifY - (cordX0), 45, 6, COLOR_BUTTON);
-                       tft.drawRoundRect(cordX0 + 6, cordY0 + 1*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_BUTTON);
+                               clean_touch();
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 0*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM_SELECT);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 0*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM_SELECT);
+                               
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 1*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 1*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                               
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 2*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 2*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                               while(1)
+                               {
+                                   delay(delay_puls);
+                                   p = ts.getPoint(); 
+     
+                                   if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                                   {
+                                       x = (p.x - Xo)*kX;
+                                       y = (p.y - Yo)*kY;
+                                       if ((x > 320)&&((y > 1)&&(y < 31)))   // прибавляем
+                                       {
+                                           
+                                           
+                                           clean_touch();
+                                           
+                                           if(gnum == 0)
+                                           {
+                                               alarm_minuts += 5;
+                                               if(alarm_minuts > 55) alarm_minuts = 0;
+                                               tft.fillRect(cordX0 + 245, cordY0 + 36, 24, 20, COLOR_LCD);
+                                               tft.setCursor(cordX0 + 245, cordY0 + 36);
+                                               if(alarm_minuts < 10)tft.print("0");
+                                               tft.print(alarm_minuts);
+                                           }
+                                           if(gnum == 1)
+                                           {
+                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 38, 20, COLOR_LCD);
+                                               tft.setCursor(cordX0 + 230, cordY0 + 36);
+                                               if(music == true){ music = false; tft.print("OFF");}
+                                               else {music = true;tft.print("ON");}
+                                           }
+                                           
+                                           
+                                           
+                                       }
+                                       if ((x > 320)&&((y > 64)&&(y < 103))) // убавляем
+                                       {
+                                           
+                                           
+                                           clean_touch();
+                                           if(gnum == 0)
+                                           {
+                                             alarm_minuts--;
+                                             if(alarm_minuts < 0) alarm_hours = 55;
+                                             tft.fillRect(cordX0 + 245, cordY0 + 36, 24, 20, COLOR_LCD);
+                                             tft.setCursor(cordX0 + 245, cordY0 + 36);
+                                             if(alarm_minuts < 10)tft.print("0");
+                                             tft.print(alarm_minuts);
+                                           }
+                                           if(gnum == 1)
+                                           {
+                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 38, 20, COLOR_LCD);
+                                               tft.setCursor(cordX0 + 230, cordY0 + 36);
+                                               if(music == true){ music = false; tft.print("OFF");}
+                                               else {music = true;tft.print("ON");}
+                                           }
+                                           
+                                           
+                                       
+                                       }
+                                       if ((x > 320)&&((y > 140)&&(y < 175))) 
+                                       {
+                                           delay(delay_puls);
+                                           clean_touch();
+                                           tft.drawRoundRect(cordX0 + 5, cordY0 + 0*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                                           tft.drawRoundRect(cordX0 + 6, cordY0 + 0*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                                           p = ts.getPoint(); 
+                                           if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                                           {
+                                             x = (p.x - Xo)*kX;
+                                             y = (p.y - Yo)*kY;
+                                           }
+                                           else {x = 0; y =0; }
+                                           break;
+                                       } // выход
+                                       
+                                   } 
+                                   
+                               }
+                                                                
+                      }
+                      if(((y > 80)&&(y < 120))&&((x > 20)&&(x < 290)))  // вторая кнопка
+                      {
+                                                   
+                               delay(delay_puls);
                        
-                       if ((x > 320)&&((y > 140)&&(y < 175))){delay(delay_puls); break;}
-                       }
+                               clean_touch();
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 1*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM_SELECT);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 1*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM_SELECT);
+                               
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 0*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 0*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                               
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 2*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 2*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                               while(1)
+                               {
+                                   delay(delay_puls);
+                                   p = ts.getPoint(); 
+     
+                                   if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                                   {
+                                       x = (p.x - Xo)*kX;
+                                       y = (p.y - Yo)*kY;
+                                       if ((x > 320)&&((y > 1)&&(y < 31)))   // прибавляем
+                                       {
+                                           clean_touch();
+                                           
+                                           if(gnum == 0)
+                                           {
+                                             volume_alarm++;
+                                             if(volume_alarm > 10) volume_alarm = 0;
+                                             tft.fillRect(cordX0 + 230, cordY0 + 36+ 1*49, 25, 20, COLOR_LCD);
+                                             tft.setCursor(cordX0 + 230, cordY0 + 36+ 1*49);
+                                             tft.print(volume_alarm);
+                                           }
+                                           if(gnum == 1)
+                                           {
+                                             melody_menu++;
+                                             if(melody_menu > 10) melody_menu = 0;
+                                             tft.fillRect(cordX0 + 230, cordY0 + 36+ 1*49, 25, 20, COLOR_LCD);
+                                             tft.setCursor(cordX0 + 230, cordY0 + 36+ 1*49);
+                                             tft.print(melody_menu); 
+                                           }
+                                           
+                                          
+                                           
+                                       }
+                                       if ((x > 320)&&((y > 64)&&(y < 103))) // убавляем
+                                       {
+                                           
+                                           
+                                           clean_touch();
+                                           if(gnum == 0)
+                                           {
+                                             volume_alarm--;
+                                             if(volume_alarm < 0) volume_alarm = 0;
+                                             tft.fillRect(cordX0 + 230, cordY0 + 36+ 1*49, 25, 20, COLOR_LCD);
+                                             tft.setCursor(cordX0 + 230, cordY0 + 36+ 1*49);
+                                             tft.print(volume_alarm);
+                                           }
+                                           if(gnum == 1)
+                                           {
+                                             melody_menu--;
+                                             if(melody_menu < 0) melody_menu = 0;
+                                             tft.fillRect(cordX0 + 230, cordY0 + 36+ 1*49, 25, 20, COLOR_LCD);
+                                             tft.setCursor(cordX0 + 230, cordY0 + 36+ 1*49);
+                                             tft.print(melody_menu); 
+                                           }
+                                           
+                                          
+                                       
+                                       }
+                                       if ((x > 320)&&((y > 140)&&(y < 175))) 
+                                       {
+                                           delay(delay_puls);
+                                           clean_touch();
+                                           tft.drawRoundRect(cordX0 + 5, cordY0 + 1*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                                           tft.drawRoundRect(cordX0 + 6, cordY0 + 1*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                                           p = ts.getPoint(); 
+                                           if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                                           {
+                                             x = (p.x - Xo)*kX;
+                                             y = (p.y - Yo)*kY;
+                                           }
+                                           else {x = 0; y =0; }
+                                           break;
+                                       } // выход
+                                   } 
+                                   
+                               }
+
+                      }
+                     if(((y > 140)&&(y < 170))&&((x > 20)&&(x < 290)))  // третья кнопка
+                      {
+                         
+                           
+                               delay(delay_puls);
+                       
+                               clean_touch();
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 2*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM_SELECT);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 2*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM_SELECT);
+                               
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 0*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 0*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                               
+                               tft.drawRoundRect(cordX0 + 5, cordY0 + 1*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                               tft.drawRoundRect(cordX0 + 6, cordY0 + 1*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                               while(1)
+                               {
+                                   delay(delay_puls);
+                                   p = ts.getPoint(); 
+     
+                                   if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                                   {
+                                       x = (p.x - Xo)*kX;
+                                       y = (p.y - Yo)*kY;
+                                       if ((x > 320)&&((y > 1)&&(y < 31)))   // прибавляем
+                                       {
+                                           
+                                           
+                                           clean_touch();
+                                           if(gnum == 0)
+                                           {
+                                             melody_alarm++;
+                                             if(melody_alarm > 10) melody_alarm = 0;
+                                             tft.fillRect(cordX0 + 230, cordY0 + 36+ 2*49, 25, 20, COLOR_LCD);
+                                             tft.setCursor(cordX0 + 230, cordY0 + 36+ 2*49);
+                                             tft.print(melody_alarm);
+                                           }
+                                           if(gnum == 1)
+                                           {
+                                             interval_sensor++;
+                                             if(interval_sensor > 24) interval_sensor = 0;
+                                             tft.fillRect(cordX0 + 230, cordY0 + 36+ 2*49, 25, 20, COLOR_LCD);
+                                             tft.setCursor(cordX0 + 230, cordY0 + 36+ 2*49);
+                                             tft.print(interval_sensor); 
+                                           }
+                                           
+                                           
+                                           
+                                       }
+                                       if ((x > 320)&&((y > 64)&&(y < 103))) // убавляем
+                                       {
+                                           
+                                           
+                                           clean_touch();
+                                           if(gnum == 0)
+                                           {
+                                             melody_alarm--;
+                                             if(melody_alarm < 0) melody_alarm = 0;
+                                             tft.fillRect(cordX0 + 230, cordY0 + 36+ 2*49, 25, 20, COLOR_LCD);
+                                             tft.setCursor(cordX0 + 230, cordY0 + 36+ 2*49);
+                                             tft.print(melody_alarm);
+                                           }
+                                           if(gnum == 1)
+                                           {
+                                             interval_sensor--;
+                                             if(interval_sensor < 0) interval_sensor = 0;
+                                             tft.fillRect(cordX0 + 230, cordY0 + 36+ 2*49, 25, 20, COLOR_LCD);
+                                             tft.setCursor(cordX0 + 230, cordY0 + 36+ 2*49);
+                                             tft.print(interval_sensor); 
+                                           }
+                                           
+                                           
+                                       
+                                       }
+                                       if ((x > 320)&&((y > 140)&&(y < 175))) 
+                                       {
+                                           delay(delay_puls);
+                                           clean_touch();
+                                           tft.drawRoundRect(cordX0 + 5, cordY0 + 2*(49)+20, corddifY - (cordX0), 45, 6, COLOR_ITEM);
+                                           tft.drawRoundRect(cordX0 + 6, cordY0 + 2*(49)+19, corddifY - (cordX0)-2, 45, 6, COLOR_ITEM);
+                                           
+                                           p = ts.getPoint(); 
+                                           if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                                           {
+                                             x = (p.x - Xo)*kX;
+                                             y = (p.y - Yo)*kY;
+                                           }
+                                           else {x = 0; y =0; }
+                                           break;
+                                       } // выход
+                                   } 
+                                   
+                               }
+                               
+
                      }
-                   }
-                   if ((x > 320)&&((y > 140)&&(y < 175))) {break;} // выход
-                   } 
+                    
+                    if ((x > 320)&&((y > 140)&&(y < 175)))
+                    {
+                      p = ts.getPoint(); 
+                      if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                      {
+                           x = (p.x - Xo)*kX;
+                           y = (p.y - Yo)*kY;
+                      }
+                      else {x = 0; y =0; }
+                      break;
+                    } // выход
+                  } 
                  
-                 }
+               }
              }
             
          }
@@ -587,7 +992,7 @@ void my_func(int * masX, int * masY, int count, int n, int* masR)
  
 }
 //-------------------_ Отрисовка меню настроек _-----------------
-void draw_menu(void)
+void draw_menu(int g)
 {
   int items = 3;     // количество строк меню
   int ofsetx = 5;
@@ -595,9 +1000,10 @@ void draw_menu(void)
   int setspace = 4;  // растояние между строками меню
   int heigh = 45;
   int ofsetext = 18;
+  clean_touch();
+  tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);  
   
-  
- if(gnum ==0)
+ if(g ==0)
  { 
    for(int i = 0; i < items; i++)
    {
@@ -608,8 +1014,8 @@ void draw_menu(void)
    }
    tft.fillRect(290,200, 30,20, COLOR_LCD);
    tft.setCursor(290, 200);
-   tft.print(gnum+1);
-   gnum++;
+   tft.print(g+1);
+   
    
    tft.setCursor(cordX0 + ofsetext, cordY0 + 36);
    tft.print("Alarm clock");
@@ -639,8 +1045,8 @@ void draw_menu(void)
    }
    tft.fillRect(290,200, 30,20, COLOR_LCD);
    tft.setCursor(290, 200);
-   tft.print(gnum+1);
-   gnum = 0;
+   tft.print(g+1);
+  
    
    tft.setCursor(cordX0 + ofsetext, cordY0 + 36);
    tft.print("On/Off music");
