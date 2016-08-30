@@ -119,8 +119,8 @@ int hours, minutes, seconds;
 int days, months, years;
 double temp, pres, hum, CO2;
 const char *monthName[12] = { 
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  "Янв", "Фев", "Мар", "Апр", "Май", "Июн",
+  "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"
 };
 
 //--------------_ Переменные для меню настроек _--------------------------------
@@ -507,13 +507,22 @@ void loop(void)
                            tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
                            if(gnum == 0)
                            {
-                             draw_menu(1);
+                             draw_menu(0);
                              gnum++;
                            }
                            else
                            {
-                             draw_menu(0);
+                             draw_menu(1);
                              gnum--;
+                           }
+                           
+                           delay(delay_puls);
+                           p = ts.getPoint(); 
+     
+                           if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
+                           {
+                               x = (p.x - Xo)*kX;
+                               y = (p.y - Yo)*kY;
                            }
                            
                        }
@@ -556,10 +565,10 @@ void loop(void)
                                            if(gnum == 1)
                                            {
                                                
-                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 38, 20, COLOR_LCD);
+                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 50, 20, COLOR_LCD);
                                                tft.setCursor(cordX0 + 230, cordY0 + 36);
-                                               if(music == true){ music = false; tft.print("OFF");}
-                                               else {music = true;tft.print("ON");}
+                                               if(music == true){ music = false; tft.print(utf8rus("ВЫКЛ"));}
+                                               else {music = true;tft.print(utf8rus("ВКЛ"));}
                                                
                                            
                                            }
@@ -582,10 +591,10 @@ void loop(void)
                                            }
                                            if(gnum == 1)
                                            {
-                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 38, 20, COLOR_LCD);
+                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 50, 20, COLOR_LCD);
                                                tft.setCursor(cordX0 + 230, cordY0 + 36);
-                                               if(music == true){ music = false; tft.print("OFF");}
-                                               else {music = true;tft.print("ON");}              
+                                               if(music == true){ music = false; tft.print(utf8rus("ВЫКЛ"));}
+                                               else {music = true;tft.print(utf8rus("ВКЛ"));}              
                                            }
                                            
                                           
@@ -651,10 +660,10 @@ void loop(void)
                                            }
                                            if(gnum == 1)
                                            {
-                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 38, 20, COLOR_LCD);
+                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 50, 20, COLOR_LCD);
                                                tft.setCursor(cordX0 + 230, cordY0 + 36);
-                                               if(music == true){ music = false; tft.print("OFF");}
-                                               else {music = true;tft.print("ON");}
+                                               if(music == true){ music = false; tft.print(utf8rus("ВЫКЛ"));}
+                                               else {music = true;tft.print(utf8rus("ВКЛ"));}
                                            }
                                            
                                            
@@ -676,10 +685,10 @@ void loop(void)
                                            }
                                            if(gnum == 1)
                                            {
-                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 38, 20, COLOR_LCD);
+                                               tft.fillRect(cordX0 + 230, cordY0 + 36, 50, 20, COLOR_LCD);
                                                tft.setCursor(cordX0 + 230, cordY0 + 36);
-                                               if(music == true){ music = false; tft.print("OFF");}
-                                               else {music = true;tft.print("ON");}
+                                               if(music == true){ music = false; tft.print(utf8rus("ВЫКЛ"));}
+                                               else {music = true;tft.print(utf8rus("ВКЛ"));}
                                            }
                                            
                                            
@@ -1018,19 +1027,19 @@ void draw_menu(int g)
    
    
    tft.setCursor(cordX0 + ofsetext, cordY0 + 36);
-   tft.print("Alarm clock");
+   tft.print(utf8rus("Будильник"));
    tft.setCursor(cordX0 + 200, cordY0 + 36);
    tft.print(alarm_hours);
    tft.print(" : ");
    tft.print(alarm_minuts);
    
    tft.setCursor(cordX0 + ofsetext, cordY0 + 36 + 1*(heigh+ setspace));
-   tft.print("Volume alarm");
+   tft.print(utf8rus("Громкость буд"));
    tft.setCursor(cordX0 + 230, cordY0 + 36+ 1*(heigh+ setspace));
    tft.print(volume_alarm);
    
    tft.setCursor(cordX0 + ofsetext, cordY0 + 36 + 2*(heigh+ setspace));
-   tft.print("Melody alarm");
+   tft.print(utf8rus("Мелодия буд"));
    tft.setCursor(cordX0 + 230, cordY0 + 36+ 2*(heigh+ setspace));
    tft.print(melody_alarm);
  }
@@ -1049,18 +1058,18 @@ void draw_menu(int g)
   
    
    tft.setCursor(cordX0 + ofsetext, cordY0 + 36);
-   tft.print("On/Off music");
+   tft.print(utf8rus("Вкл/Выкл музыку"));
    tft.setCursor(cordX0 + 230, cordY0 + 36);
-   if(music) tft.print("On");
-   else  tft.print("Off");
+   if(music) tft.print(utf8rus("ВКЛ"));
+   else  tft.print(utf8rus("ВЫКЛ"));
    
    tft.setCursor(cordX0 + ofsetext, cordY0 + 36 + 1*(heigh+ setspace));
-   tft.print("Melody menu");
+   tft.print(utf8rus("Мелодия меню"));
    tft.setCursor(cordX0 + 230, cordY0 + 36+ 1*(heigh+ setspace));
    tft.print(melody_menu);
    
    tft.setCursor(cordX0 + ofsetext, cordY0 + 36 + 2*(heigh+ setspace));
-   tft.print("Interval sensor");
+   tft.print(utf8rus("Интервал графика"));
    tft.setCursor(cordX0 + 230, cordY0 + 36+ 2*(heigh+ setspace));
    tft.print(interval_sensor);
  }
@@ -1101,7 +1110,7 @@ void drawLabel(int num)
       tft.print("0");
     
       tft.setCursor(250,175);
-      tft.print("t, hour");
+      tft.print(utf8rus("t, час"));
       break;
     }
     case 2: // давление
@@ -1121,13 +1130,13 @@ void drawLabel(int num)
       tft.print("0");
     
       tft.setCursor(250,175);
-      tft.print("t, hour");
+      tft.print(utf8rus("t, час"));
       break;
     }
     case 3: // влажность
     {
       tft.setCursor(ofSetX+cordX0,cordY0+ofSetText);
-      tft.print("T, C");
+      tft.print(utf8rus("Вл, %"));
       
       tft.setCursor(ofSetX+cordX0, (heigh_graf - 30*k- ofSetText));
       tft.print("100");
@@ -1140,13 +1149,13 @@ void drawLabel(int num)
       tft.print("0");
     
       tft.setCursor(250,175);
-      tft.print("t, hour");
+      tft.print(utf8rus("t, час"));
       break;
     }
     case 4: // CO2
     {
       tft.setCursor(ofSetX+cordX0,cordY0+ofSetText);
-      tft.print("T, C");
+      tft.print("СO2, %");
       tft.setCursor(ofSetX+cordX0, (heigh_graf - 40*k- ofSetText));  // h - высота поля
       tft.print("40");
       tft.setCursor(ofSetX+cordX0, (heigh_graf - 30*k- ofSetText));
@@ -1160,7 +1169,7 @@ void drawLabel(int num)
       tft.print("0");
     
       tft.setCursor(250,175);
-      tft.print("t, hour");
+      tft.print(utf8rus("t, час"));
       break;
     }
     default:{break;}
@@ -1235,7 +1244,7 @@ void draw_idex_param(int num)
        tft.setCursor(90, 25);
        tft.print(days);
        tft.print("_");
-       tft.print(monthName[months]);
+       tft.print(utf8rus(monthName[months]));
        tft.print("_");
        tft.print(years);
        
@@ -1245,22 +1254,22 @@ void draw_idex_param(int num)
        {
          tft.fillRect(60, 120, 80, 20, COLOR_LCD);
          
-         tft.setCursor(30, 120);
+         tft.setCursor(20, 120);
          tft.print("T = ");
          tft.print(temp);
          tft.println(" C;");
          
          tft.fillRect(70, 150, 120, 20, COLOR_LCD);
-         tft.setCursor(40, 150);
-         tft.print("P = ");
+         tft.setCursor(30, 150);
+         tft.print(utf8rus("Дав = "));
          tft.print(pres);
-         tft.print(" mm.rt.st");
+         tft.print(utf8rus(" мм.рт.ст"));
          
-         tft.fillRect(200, 120, 80, 20, COLOR_LCD);
-         tft.setCursor(170, 120);
-         tft.print("H = ");
+         tft.fillRect(190, 120, 80, 20, COLOR_LCD);
+         tft.setCursor(165, 120);
+         tft.print(utf8rus("Вл = "));
          tft.print(hum);
-         tft.print(" %");
+         tft.print("%");
        }
        main_count++;
        if(main_count == 10) main_count = 0;
@@ -1281,10 +1290,10 @@ void draw_idex_param(int num)
     {
        tft.fillRect(75, 35, 210, 20, COLOR_LCD);
        tft.drawRect(45, 30, 250, 25, COLOR_LINE_FRAME);
-       tft.setCursor(45, 35);
+       tft.setCursor(50, 35);
        tft.print("P = ");
        tft.print(pres);
-       tft.print(" mm.rt.st");
+       tft.print(utf8rus(" мм.рт.ст"));
        main_count = 0;
        break;
     }
@@ -1293,7 +1302,7 @@ void draw_idex_param(int num)
        tft.fillRect(125, 35, 110, 20, COLOR_LCD);
        tft.drawRect(90, 30, 150, 25, COLOR_LINE_FRAME);
        tft.setCursor(95, 35);
-       tft.print("H = ");
+       tft.print(utf8rus("Вл = "));
        tft.print(hum);
        tft.print(" %");
        main_count = 0;
@@ -1303,7 +1312,7 @@ void draw_idex_param(int num)
     {
        tft.fillRect(135, 35, 110, 20, COLOR_LCD);
        tft.drawRect(90, 30, 150, 25, COLOR_LINE_FRAME);
-       tft.setCursor(115, 35);
+       tft.setCursor(105, 35);
        tft.print("CO2 = ");
        tft.print(CO2/10);
        tft.print(" %");
@@ -1366,7 +1375,7 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(56,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(60, 206);
+           tft.setCursor(62, 206);
            tft.print("T,C");
            
              // давление
@@ -1383,8 +1392,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(103,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(115, 206);
-           tft.print("P");
+           tft.setCursor(120, 206);
+           tft.print(utf8rus("Д"));
            
              // влажность
              // отрисовываем контур
@@ -1400,8 +1409,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(149,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(165, 206);
-           tft.print("D");
+           tft.setCursor(160, 206);
+           tft.print(utf8rus("Вл"));
            
              // CO2
              // отрисовываем контур
@@ -1495,7 +1504,7 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawLine     (93,   236,   100, 229,  COLOR_LINE_FRAME);
            
             // текст кнопки
-           tft.setCursor(60, 206);
+           tft.setCursor(62, 206);
            tft.print("T,C");
            
              // давление
@@ -1512,8 +1521,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(103,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(115, 206);
-           tft.print("P");
+           tft.setCursor(120, 206);
+           tft.print(utf8rus("Д"));
            
              // влажность
              // отрисовываем контур
@@ -1529,8 +1538,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(149,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(165, 206);
-           tft.print("D");
+           tft.setCursor(160, 206);
+           tft.print(utf8rus("Вл"));
            
              // CO2
              // отрисовываем контур
@@ -1613,7 +1622,7 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(56,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(60, 206);
+           tft.setCursor(62, 206);
            tft.print("T,C");
            
              // давление
@@ -1640,8 +1649,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawLine     (139,   236,   146,  229,  COLOR_LINE_FRAME);
            
             // текст кнопки
-           tft.setCursor(115, 206);
-           tft.print("P");
+           tft.setCursor(120, 206);
+           tft.print(utf8rus("Д"));
            
              // влажность
              // отрисовываем контур
@@ -1657,8 +1666,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(149,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(165, 206);
-           tft.print("D");
+           tft.setCursor(160, 206);
+           tft.print(utf8rus("Вл"));
            
              // CO2
              // отрисовываем контур
@@ -1741,7 +1750,7 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(56,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(60, 206);
+           tft.setCursor(62, 206);
            tft.print("T,C");
            
              // давление
@@ -1758,8 +1767,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(103,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(115, 206);
-           tft.print("P");
+           tft.setCursor(120, 206);
+           tft.print(utf8rus("Д"));
            
              // влажность
                 // выделенная кнопка
@@ -1785,8 +1794,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawLine     (185,   236,   192,  229,  COLOR_LINE_FRAME);
                       
             // текст кнопки
-           tft.setCursor(165, 206);
-           tft.print("D");
+           tft.setCursor(160, 206);
+           tft.print(utf8rus("Вл"));
            
              // CO2
              // отрисовываем контур
@@ -1868,7 +1877,7 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(56,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(60, 206);
+           tft.setCursor(62, 206);
            tft.print("T,C");
            
              // давление
@@ -1885,8 +1894,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(103,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(115, 206);
-           tft.print("P");
+           tft.setCursor(120, 206);
+           tft.print(utf8rus("Д"));
            
              // влажность
              // отрисовываем контур
@@ -1902,8 +1911,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(149,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(165, 206);
-           tft.print("D");
+           tft.setCursor(160, 206);
+           tft.print(utf8rus("Вл"));
            
              // CO2
                // выделенная кнопка
@@ -1995,7 +2004,7 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(56,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(60, 206);
+           tft.setCursor(62, 206);
            tft.print("T,C");
            
              // давление
@@ -2012,8 +2021,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(103,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(115, 206);
-           tft.print("P");
+           tft.setCursor(120, 206);
+           tft.print(utf8rus("Д"));
            
              // влажность
              // отрисовываем контур
@@ -2029,8 +2038,8 @@ void draw_button(int num) //номер выбранной кнопки
            tft.drawFastHLine(149,   228,   44,        COLOR_BUTTON);
            
             // текст кнопки
-           tft.setCursor(165, 206);
-           tft.print("D");
+           tft.setCursor(160, 206);
+           tft.print(utf8rus("Вл"));
            
              // CO2
              // отрисовываем контур
@@ -2118,5 +2127,44 @@ void turnHeaterLow(){
   digitalWrite(VOLTAGE_REGULATOR_DIGITAL_OUT_PIN, HIGH);
   heaterInHighPhase = false;
   switchTimeMillis = millis() + MQ7_HEATER_1_4_V_TIME_MILLIS;
+}
+
+//--------_ Функция преобразования строк в русский язык _---------------
+// Необходимо заменить файл glcdfont.c по статье @arduinec
+String utf8rus(String source)
+{
+  int i,k;
+  String target;
+  unsigned char n;
+  char m[2] = {'0', '\0'};
+  
+  k = source.length();
+  i = 0;
+  
+  while(i < k)
+  {
+      n = source[i]; i++;
+      
+      if(n >= 0xBF)
+      {
+          switch(n)
+          {
+            case 0xD0:  {
+                            n = source[i]; i++;
+                            if(n == 0x81){ n = 0xA8; break;}
+                            if(n >= 0x90 && n <= 0xBF) n = n + 0x2F;
+                            break;
+                        }
+            case 0xD1:  {
+                            n = source[i]; i++;
+                            if(n == 0x91){ n = 0xB7; break;}
+                            if(n >= 0x80 && n <= 0x8F) n = n + 0x6F;
+                            break;
+                        }
+          }
+      }
+      m[0] = n; target = target + String(m);
+  }
+  return target;
 }
 
