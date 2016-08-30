@@ -1,7 +1,7 @@
 #Home weather station
 
 
-[Watch the video presentation of the project] (http://webdesign.ru.net)
+[Watch the video presentation of the project] (http://vk.com/pastuh9090)
 
 ## Get Started
 
