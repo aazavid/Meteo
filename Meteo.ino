@@ -85,7 +85,7 @@ double x, y;
 double kX = 320/(932.0 - Xo);
 double kY = 240/(883.0 - Yo);
 
-int delay_puls = 100;   // задержка между касанием
+int delay_puls = 200;   // задержка между касанием
 
 int *xTemp;
 int *yTemp;
@@ -301,11 +301,11 @@ void loop(void)
        months  = tm.Month;
        years   = tmYearToCalendar(tm.Year);
        
-       if(minutes %(5 * interval_sensor) ==0) // каждые 5 минут сохраняем показания
+       if(seconds %(5 * interval_sensor) ==0) // каждые 5 минут сохраняем показания
        { 
          yTemp[depenition]  = temp*k;
-         yPres[depenition] = pres/8; 
-         yHum[depenition]   = hum*0.5;
+         yPres[depenition] = ((double)pres *10.0-7400.0)/3; 
+         yHum[depenition]   = hum;
          yCO2[depenition] = CO2/5;
          depenition++;
        } 
@@ -349,126 +349,29 @@ void loop(void)
          {
              if((x > 12)&&(x < 45)) // если касание на кнопке часы
              {
-             
-                 clean_touch();
-                 draw_button(1);
-                 tft.fillRect(cordX0, cordY0, corddifY, corddifX,  COLOR_LCD);
-                 tft.fillRect(290,200, 30,20, COLOR_LCD);
-                 param_index = 0;
-                 draw_idex_param(param_index);
-                 
-                 if(music){
-                 if(!play)
-                 {
-                   mp3_play(melody_menu);
-                   delay(100);
-                   play = true;
-                 }}
-                 
-             
+                event_click(1);
              }
              if((x > 55)&&(x < 90)) // если касание на кнопке температура
              {
-                 clean_touch();
-                 
-                 if(play)
-                 { 
-                   mp3_stop();
-                   delay(100);
-                   play = false;
-                 }
-                
-                 tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
-                 tft.fillRect(290,200, 30,20, COLOR_LCD);
-                 param_index = 1;
-                 draw_idex_param(param_index);
-                 draw_button(2);
-                 select_button();
-                 drawFrameGrafh();
-                 drawLabel(param_index);
-                 my_func(xTemp, yTemp, point_data, point_graf, gTemp);
-                 draw(gTemp, point_graf);
-                 
-                 
-                 
-                 
+                event_click(2);                  
              }
              if((x > 99)&&(x < 135)) // если касание на кнопке давление
              {
-             
-                 clean_touch();
-                 
-                 if(play)
-                 { 
-                   mp3_stop();
-                   delay(100);
-                   play = false;
-                 }
-                 
-                 tft.fillRect(cordX0, cordY0, corddifY, corddifX,  COLOR_LCD);
-                 tft.fillRect(290,200, 30,20, COLOR_LCD);
-                 param_index = 2;
-                 draw_idex_param(param_index);
-                 draw_button(3);
-                 select_button();
-                 drawFrameGrafh();
-                 drawLabel(param_index);
-                 my_func(xTemp, yPres, point_data, point_graf, gTemp);
-                 draw(gTemp, point_graf);
-                 
+                 event_click(3);
              }
              if((x > 145)&&(x < 185)) // если касание на кнопке влажности
              {
-             
-                 clean_touch();
-                 
-                 if(play)
-                 { 
-                   mp3_stop();
-                   delay(100);
-                   play = false;
-                 }
-                 
-                 tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
-                 tft.fillRect(290,200, 30,20, COLOR_LCD);
-                 param_index = 3;
-                 draw_idex_param(param_index);
-                 draw_button(4);
-                 select_button();
-                 drawFrameGrafh();
-                 drawLabel(param_index);
-                 my_func(xTemp, yHum, point_data, point_graf, gTemp);
-                 draw(gTemp, point_graf);
-                 
+                 event_click(4);
              }
              if((x > 193)&&(x < 228)) // если касание на кнопке СО2
              {
-             
-                 clean_touch();
-                 
-                 if(play)
-                 { 
-                   mp3_stop();
-                   delay(100);
-                   play = false;
-                 }
-                 
-                 tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
-                 tft.fillRect(290,200, 30,20, COLOR_LCD);
-                 param_index = 4;
-                  draw_idex_param(param_index);
-                 draw_button(5);
-                 drawFrameGrafh();
-                 drawLabel(param_index);
-                 my_func(xTemp, yCO2, point_data, point_graf, gTemp);
-                 draw(gTemp, point_graf);
-                  
+                 event_click(5);
              }
              if((x > 235)&&(x < 270)) // если касание на кнопке меню
              {
              
                  clean_touch();
-                 
+              
                  if(play)
                  { 
                    mp3_stop();
@@ -481,12 +384,12 @@ void loop(void)
                  param_index = 6;
                  if(gnum == 0)
                  {
-                   draw_menu(0);
+                   draw_menu(1);
                    gnum++;
                  }
                  else
                  {
-                   draw_menu(1);
+                   draw_menu(0);
                    gnum--;
                  }
                  
@@ -500,19 +403,46 @@ void loop(void)
                        x = (p.x - Xo)*kX;
                        y = (p.y - Yo)*kY; 
                    
-                       if(((y > 208)&&(y < 240))&&((x > 235)&&(x < 270))) // если ещё раз нажали кнопку меню
-                       {                                              // открываем следующую страницу
+                       if((y > 208)&&(y < 240))
+                       {
+                         if((x > 12)&&(x < 45)) // если касание на кнопке часы
+                         {
+                            event_click(1);
+                            break;
+                         }
+                         if((x > 55)&&(x < 90)) // если касание на кнопке температура
+                         {
+                            event_click(2);
+                            break;                      
+                         }
+                         if((x > 99)&&(x < 135)) // если касание на кнопке давление
+                         {
+                             event_click(3);
+                             break;
+                         }
+                         if((x > 145)&&(x < 185)) // если касание на кнопке влажности
+                         {
+                             event_click(4);
+                             break;
+                         }
+                         if((x > 193)&&(x < 228)) // если касание на кнопке СО2
+                         {
+                            event_click(5);
+                            break;
+                         }
+                         if((x > 235)&&(x < 270)) // если касание на кнопке меню
+                         {                                              // открываем следующую страницу
                            clean_touch();
                            
                            tft.fillRect(cordX0, cordY0, corddifY, corddifX, COLOR_LCD);
                            if(gnum == 0)
                            {
-                             draw_menu(0);
+                             draw_menu(1);
                              gnum++;
                            }
                            else
                            {
-                             draw_menu(1);
+                             draw_menu(0);
                              gnum--;
                            }
                            
@@ -524,6 +454,9 @@ void loop(void)
                                x = (p.x - Xo)*kX;
                                y = (p.y - Yo)*kY;
                            }
+                         } //x
+                      
+                         
                            
                        }
                        if(((y > 34)&&(y < 68))&&((x > 20)&&(x < 240)))  // первая кнопка часы
@@ -653,7 +586,7 @@ void loop(void)
                                            {
                                                alarm_minuts += 5;
                                                if(alarm_minuts > 55) alarm_minuts = 0;
-                                               tft.fillRect(cordX0 + 245, cordY0 + 36, 24, 20, COLOR_LCD);
+                                               tft.fillRect(cordX0 + 245, cordY0 + 36, 35, 20, COLOR_LCD);
                                                tft.setCursor(cordX0 + 245, cordY0 + 36);
                                                if(alarm_minuts < 10)tft.print("0");
                                                tft.print(alarm_minuts);
@@ -678,7 +611,7 @@ void loop(void)
                                            {
                                              alarm_minuts--;
                                              if(alarm_minuts < 0) alarm_hours = 55;
-                                             tft.fillRect(cordX0 + 245, cordY0 + 36, 24, 20, COLOR_LCD);
+                                             tft.fillRect(cordX0 + 245, cordY0 + 36, 35, 20, COLOR_LCD);
                                              tft.setCursor(cordX0 + 245, cordY0 + 36);
                                              if(alarm_minuts < 10)tft.print("0");
                                              tft.print(alarm_minuts);
@@ -906,6 +839,7 @@ void loop(void)
                     
                     if ((x > 320)&&((y > 140)&&(y < 175)))
                     {
+                      delay(delay_puls);
                       p = ts.getPoint(); 
                       if (p.z > MINPRESSURE && p.z < MAXPRESSURE) // произошло нажатие
                       {
@@ -932,7 +866,7 @@ void loop(void)
        Serial.print(" - ");
        Serial.println(y);
      }                      // */
-     delay(delay_puls); 
+     delay(100); 
      count++;
      if(count>10){
      clean_touch();
@@ -941,9 +875,116 @@ void loop(void)
      }
      
   
+}//-----------------_ КОНЕЦ ОСНОВНОГО ЦИКЛА _-------------------------------
+//--------------------------------------------------------------------------
+
+//--------------_ Описание функций встечающихся в программе _---------------
+
+//-----------------------_ Обработка клика _--------------------------------
+void event_click(int num)
+{
+    clean_touch();
+    
+    tft.fillRect(cordX0, cordY0, corddifY, corddifX,  COLOR_LCD);
+    tft.fillRect(290,200, 30,20, COLOR_LCD);
+    
+    switch(num)
+    {
+       case 1 : 
+       {
+           draw_button(1);
+           param_index = 0;
+           draw_idex_param(param_index);
+                 
+           if(music)
+           {
+               if(!play)
+               {
+                   mp3_play(melody_menu);
+                   delay(100);
+                   play = true;
+               }
+           }
+           break;
+       }
+       case 2:
+       {
+            if(play)
+            { 
+               mp3_stop();
+               delay(100);
+               play = false;
+            }
+            
+            param_index = 1;
+            draw_idex_param(param_index);
+            draw_button(2);
+            select_button();
+            drawFrameGrafh();
+            drawLabel(param_index);
+            my_func(xTemp, yTemp, point_data, point_graf, gTemp);
+            draw(gTemp, point_graf);
+            break;
+       }
+       case 3:
+       {          
+          if(play)
+          { 
+              mp3_stop();
+              delay(100);
+              play = false;
+          }
+          param_index = 2;
+          draw_idex_param(param_index);
+          draw_button(3);
+          select_button();
+          drawFrameGrafh();
+          drawLabel(param_index);
+          my_func(xTemp, yPres, point_data, point_graf, gTemp);
+          draw(gTemp, point_graf);
+          break;
+       }
+       case 4:
+       {
+           if(play)
+           { 
+               mp3_stop();
+               delay(100);
+               play = false;
+           }
+           param_index = 3;
+           draw_idex_param(param_index);
+           draw_button(4);
+           select_button();
+           drawFrameGrafh();
+                 
+           drawLabel(param_index);
+           my_func(xTemp, yHum, point_data, point_graf, gTemp);
+           draw(gTemp, point_graf);
+           break;
+        }
+        case 5:
+        {
+            if(play)
+            { 
+                mp3_stop();
+                delay(100);
+                play = false;
+            }
+            param_index = 4;
+            draw_idex_param(param_index);
+            draw_button(5);
+            drawFrameGrafh();
+            drawLabel(param_index);
+            my_func(xTemp, yCO2, point_data, point_graf, gTemp);
+            draw(gTemp, point_graf);
+            break;   
+        }
+        default : break;
+    }
 }
 
-//---------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------
 //-------------_ Обявление массива под данные для графика _-----------------
 
 int * get_m(int p)
@@ -1118,16 +1159,16 @@ void drawLabel(int num)
       tft.setCursor(ofSetX+cordX0,cordY0+ofSetText);
       tft.print("P, mm");
       tft.setCursor(1+cordX0, (heigh_graf - 40*k- ofSetText));  // h - высота поля
-      tft.print("967");
+      tft.print("774");
       tft.setCursor(1+cordX0, (heigh_graf - 30*k- ofSetText));
-      tft.print("725");
+      tft.print("765");
       tft.setCursor(1+cordX0, (heigh_graf - 20*k- ofSetText));
-      tft.print("483");
+      tft.print("756");
       tft.setCursor(1+cordX0, (heigh_graf - 10*k- ofSetText));
-      tft.print("241");
+      tft.print("749");
  
-      tft.setCursor(ofSetX*2+cordX0, 175);
-      tft.print("0");
+      tft.setCursor(5+cordX0, 175);
+      tft.print("740");
     
       tft.setCursor(250,175);
       tft.print(utf8rus("t, час"));
@@ -1137,13 +1178,18 @@ void drawLabel(int num)
     {
       tft.setCursor(ofSetX+cordX0,cordY0+ofSetText);
       tft.print(utf8rus("Вл, %"));
+       tft.fillRect(cordX0 + 19, (cordY0 + 19), 5, 25, COLOR_LCD);
       
-      tft.setCursor(ofSetX+cordX0, (heigh_graf - 30*k- ofSetText));
+      tft.setCursor(2+cordX0, (heigh_graf - 100- ofSetText));
       tft.print("100");
-      tft.setCursor(ofSetX+cordX0, (heigh_graf - 20*k- ofSetText));
+      tft.setCursor(ofSetX+cordX0, (heigh_graf - 80- ofSetText));
       tft.print("80");
-      tft.setCursor(ofSetX+cordX0, (heigh_graf - 10*k- ofSetText));
+      tft.setCursor(ofSetX+cordX0, (heigh_graf - 60- ofSetText));
+      tft.print("60");
+      tft.setCursor(ofSetX+cordX0, (heigh_graf - 40- ofSetText));
       tft.print("40");
+      tft.setCursor(ofSetX+cordX0, (heigh_graf - 20- ofSetText));
+      tft.print("20");
  
       tft.setCursor(ofSetX*2+cordX0, 175);
       tft.print("0");
@@ -1155,15 +1201,15 @@ void drawLabel(int num)
     case 4: // CO2
     {
       tft.setCursor(ofSetX+cordX0,cordY0+ofSetText);
-      tft.print("СO2, %");
+      tft.print("CO2, %");
       tft.setCursor(ofSetX+cordX0, (heigh_graf - 40*k- ofSetText));  // h - высота поля
-      tft.print("40");
+      tft.print("60");
       tft.setCursor(ofSetX+cordX0, (heigh_graf - 30*k- ofSetText));
-      tft.print("30");
+      tft.print("45");
       tft.setCursor(ofSetX+cordX0, (heigh_graf - 20*k- ofSetText));
-      tft.print("20");
+      tft.print("30");
       tft.setCursor(ofSetX+cordX0, (heigh_graf - 10*k- ofSetText));
-      tft.print("10");
+      tft.print("15");
  
       tft.setCursor(ofSetX*2+cordX0, 175);
       tft.print("0");
@@ -1176,7 +1222,7 @@ void drawLabel(int num)
   }
    tft.setTextSize(2);
 }
-
+//------------------------------------------------------------------
 void draw(int * f, int count)
 {
   int begin = cordX0 + 22;
@@ -1244,7 +1290,7 @@ void draw_idex_param(int num)
        tft.setCursor(90, 25);
        tft.print(days);
        tft.print("_");
-       tft.print(utf8rus(monthName[months]));
+       tft.print(utf8rus(monthName[months-1]));
        tft.print("_");
        tft.print(years);
        
