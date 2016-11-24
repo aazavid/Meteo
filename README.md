@@ -1,7 +1,7 @@
 #Home weather station
 
 
-[Watch the video presentation of the project] (http://vk.com/pastuh9090)
+[Watch the video presentation of the project] (https://m.vk.com/aazavid)
 
 ## Get Started
 
